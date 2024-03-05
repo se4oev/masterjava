@@ -1,8 +1,11 @@
 package ru.javaops.masterjava.matrix;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 /**
  * gkislin
@@ -14,6 +17,31 @@ public class MatrixUtil {
     public static int[][] concurrentMultiply(int[][] matrixA, int[][] matrixB, ExecutorService executor) throws InterruptedException, ExecutionException {
         final int matrixSize = matrixA.length;
         final int[][] matrixC = new int[matrixSize][matrixSize];
+
+
+        List<Future<?>> futures = new ArrayList<>();
+        for (int j = 0; j < matrixSize; j++) {
+            final int effectiveJ = j;
+            Future<?> future = executor.submit(() -> {
+                int[] thatColumn = new int[matrixSize];
+                for (int k = 0; k < matrixSize; k++) {
+                    thatColumn[k] = matrixB[k][effectiveJ];
+                }
+
+                for (int i = 0; i < matrixSize; i++) {
+                    int[] thisRow = matrixA[i];
+                    int sum = 0;
+                    for (int k = 0; k < matrixSize; k++) {
+                        sum += thisRow[k] * thatColumn[k];
+                    }
+                    matrixC[i][effectiveJ] = sum;
+                }
+            });
+            futures.add(future);
+        }
+        for (Future<?> future : futures) {
+            future.get();
+        }
 
         return matrixC;
     }
